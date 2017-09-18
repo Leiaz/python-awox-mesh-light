@@ -29,7 +29,7 @@ C_LIGHT_MODE = 0x33
 C_PRESET = 0xc8
 
 #: White temperature. one byte 0 to 0x7f
-C_WHITE_TEMPERATURE = 0xf 
+C_WHITE_TEMPERATURE = 0xf0
 
 #: one byte 1 to 0x7f 
 C_WHITE_BRIGHTNESS = 0xf1
