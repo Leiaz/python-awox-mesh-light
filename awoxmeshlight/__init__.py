@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from . import packetutils as pckt
 
 from os import urandom
@@ -74,9 +76,9 @@ class Delegate(btle.DefaultDelegate):
             logger.info ("Notification on status char.")
             message = pckt.decrypt_packet (self.light.session_key, self.light.mac, data)
         else :
-            logger.info ("Receiced notification from characteristic %s", char.uuid)
+            logger.info ("Receiced notification from characteristic %s", char.uuid.getCommonName ())
             message = pckt.decrypt_packet (self.light.session_key, self.light.mac, data)
-            logger.info ("Received message : %s", message)
+            logger.info ("Received message : %s", repr (message))
             
 
 class AwoxMeshLight:
@@ -113,14 +115,14 @@ class AwoxMeshLight:
         self.btdevice.connect (self.mac)
         self.btdevice.setDelegate (Delegate (self))
         pair_char = self.btdevice.getCharacteristics (uuid = PAIR_CHAR_UUID)[0]
-        self.session_random = bytes(urandom(8))
+        self.session_random = urandom(8)
         message = pckt.make_pair_packet (self.mesh_name, self.mesh_password, self.session_random)
         pair_char.write (message)
         
         status_char = self.btdevice.getCharacteristics (uuid = STATUS_CHAR_UUID)[0]
         status_char.write (b'\x01')
 
-        reply = pair_char.read ()
+        reply = bytearray (pair_char.read ())
         if reply[0] == 0xd :
             self.session_key = pckt.make_session_key (self.mesh_name, self.mesh_password, \
                 self.session_random, reply[1:9])
@@ -130,7 +132,7 @@ class AwoxMeshLight:
             if reply[0] == 0xe :
                 logger.info ("Auth error : check name and password.")
             else :
-                logger.info ("Unexpected pair value : ", reply)
+                logger.info ("Unexpected pair value : %s", repr (reply))
             self.disconnect ()
             return False
 
@@ -162,7 +164,7 @@ class AwoxMeshLight:
         message.insert (0, 0x6)
         pair_char.write (message)
 
-        reply = pair_char.read ()
+        reply = bytearray (pair_char.read ())
         if reply[0] == 0x7 :
             self.mesh_name = new_mesh_name.encode ()
             self.mesh_password = new_mesh_password.encode ()
@@ -196,7 +198,7 @@ class AwoxMeshLight:
         if dest == None: dest = self.mesh_id
         packet = pckt.make_command_packet (self.session_key, self.mac, dest, command, data)
         command_char = self.btdevice.getCharacteristics (uuid=COMMAND_CHAR_UUID)[0]
-        logger.info ("Writing command %i data %s", command, data)
+        logger.info ("Writing command %i data %s", command, repr (data))
         command_char.write (packet)
 
     def resetMesh (self):
@@ -215,14 +217,16 @@ class AwoxMeshLight:
         Args :
             red, green, blue: between 0 and 0xff
         """
-        self.writeCommand (C_COLOR, bytes ([0x04, red, green, blue]))
+        data = struct.pack ('BBBB', 0x04, red, green, blue)
+        self.writeCommand (C_COLOR, data)
 
     def setColorBrightness (self, brightness):
         """
         Args :
             brightness: a value between 0xa and 0x64 ...
         """
-        self.writeCommand (C_COLOR_BRIGHTNESS, bytes ([brightness]))
+        data = struct.pack ('B', brightness)
+        self.writeCommand (C_COLOR_BRIGHTNESS, data)
 
     def setSequenceColorDuration (self, duration):
         """
@@ -246,18 +250,20 @@ class AwoxMeshLight:
             temp: between 0 and 0x7f
             brightness: between 1 and 0x7f
         """
-        self.writeCommand (C_WHITE_TEMPERATURE, bytes ([temp]))
-        self.writeCommand (C_WHITE_BRIGHTNESS, bytes ([brightness]))
+        data = struct.pack ('B', temp)
+        self.writeCommand (C_WHITE_TEMPERATURE, data)
+        data = struct.pack ('B', brightness)
+        self.writeCommand (C_WHITE_BRIGHTNESS, data)
 
     def on (self):
         """ Turns the light on.
         """
-        self.writeCommand (C_POWER, bytes([1]))
+        self.writeCommand (C_POWER, b'\x01')
 
     def off (self):
         """ Turns the light off.
         """
-        self.writeCommand (C_POWER, bytes([0]))
+        self.writeCommand (C_POWER, b'\x00')
 
     def disconnect (self):
         logger.info ("Disconnecting.")

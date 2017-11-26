@@ -25,7 +25,7 @@ def make_checksum (key, nonce, payload):
     check = encrypt (key, base)
 
     for i in range (0, len (payload), 16):
-        check_payload = payload[i:i+16].ljust (16, b'\x00')
+        check_payload = bytearray (payload[i:i+16].ljust (16, b'\x00'))
         check = bytearray([ a ^ b for (a,b) in zip(check, check_payload) ])
         check = encrypt (key, check)
 
@@ -42,7 +42,7 @@ def crypt_payload (key, nonce, payload):
 
     for i in range (0, len (payload), 16):
         enc_base = encrypt (key, base)
-        result += bytearray ([ a ^ b for (a,b) in zip (enc_base, payload[i:i+16])])
+        result += bytearray ([ a ^ b for (a,b) in zip (enc_base, bytearray (payload[i:i+16]))])
         base[0] += 1
 
     return result
@@ -66,7 +66,7 @@ def make_command_packet (key, address, dest_id, command, data):
 
     # Build payload
     dest = struct.pack ("<H", dest_id)
-    payload = (dest + bytes([command]) + b'\x60\x01' + data).ljust(15, b'\x00')
+    payload = (dest + struct.pack('B', command) + b'\x60\x01' + data).ljust(15, b'\x00')
 
     # Compute checksum
     check = make_checksum (key, nonce, payload)
@@ -109,10 +109,10 @@ def decrypt_packet (key, address, packet):
     return dec_packet
 
 def make_pair_packet (mesh_name, mesh_password, session_random):
-    m_n = mesh_name.ljust (16, b'\x00')
-    m_p = mesh_password.ljust (16, b'\x00')
+    m_n = bytearray (mesh_name.ljust (16, b'\x00'))
+    m_p = bytearray (mesh_password.ljust (16, b'\x00'))
     s_r = session_random.ljust (16, b'\x00')
-    name_pass = bytes ([ a ^ b for (a,b) in zip(m_n, m_p) ])
+    name_pass = bytearray ([ a ^ b for (a,b) in zip(m_n, m_p) ])
     enc = encrypt (s_r ,name_pass)
     packet = bytearray(b'\x0c' + session_random) # 8bytes session_random
     packet += enc[0:8]
@@ -120,8 +120,8 @@ def make_pair_packet (mesh_name, mesh_password, session_random):
 
 def make_session_key (mesh_name, mesh_password, session_random, response_random):
     random = session_random + response_random
-    m_n = mesh_name.ljust (16, b'\x00')
-    m_p = mesh_password.ljust (16, b'\x00')
+    m_n = bytearray (mesh_name.ljust (16, b'\x00'))
+    m_p = bytearray (mesh_password.ljust (16, b'\x00'))
     name_pass = bytearray([ a ^ b for (a,b) in zip(m_n, m_p) ])
     key = encrypt (name_pass, random)
     return key
