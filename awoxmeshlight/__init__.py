@@ -244,6 +244,16 @@ class AwoxMeshLight:
         data = struct.pack ("<I", duration)
         self.writeCommand (C_SEQUENCE_FADE_DURATION, data)
 
+    def setPreset (self, num):
+        """
+        Set a preset color sequence.
+
+        Args :
+            num: number between 0 and 6
+        """
+        data = struct.pack('B', num)
+        self.writeCommand (C_PRESET, data)
+
     def setWhite (self, temp, brightness):
         """
         Args :
