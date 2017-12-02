@@ -280,3 +280,26 @@ class AwoxMeshLight:
         self.btdevice.disconnect ()
         self.session_key = None
 
+    def getFirmwareRevision (self):
+        """
+        Returns :
+            The firmware version as a null terminated utf-8 string.
+        """
+        char = self.btdevice.getCharacteristics (uuid=btle.AssignedNumbers.firmwareRevisionString)[0]
+        return char.read ()
+
+    def getHardwareRevision (self):
+        """
+        Returns :
+            The hardware version as a null terminated utf-8 string.
+        """
+        char = self.btdevice.getCharacteristics (uuid=btle.AssignedNumbers.hardwareRevisionString)[0]
+        return char.read ()
+
+    def getModelNumber (self):
+        """
+        Returns :
+            The model as a null terminated utf-8 string.
+        """
+        char = self.btdevice.getCharacteristics (uuid=btle.AssignedNumbers.modelNumberString)[0]
+        return char.read ()
