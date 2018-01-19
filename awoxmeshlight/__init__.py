@@ -6,6 +6,7 @@ from os import urandom
 from bluepy import btle
 import logging
 import struct
+import time
 
 # Commands :
 
@@ -152,6 +153,11 @@ class AwoxMeshLight:
         
         pair_char = self.btdevice.getCharacteristics (uuid = PAIR_CHAR_UUID)[0]
 
+        # FIXME : Removing the delegate as a workaround to a bluepy.btle.BTLEException
+        #         similar to https://github.com/IanHarvey/bluepy/issues/182 That may be
+        #         a bluepy bug or I'm using it wrong or both ...
+        self.btdevice.setDelegate (None)
+
         message = pckt.encrypt (self.session_key, new_mesh_name.encode ())
         message.insert (0, 0x4)
         pair_char.write (message)
@@ -164,7 +170,11 @@ class AwoxMeshLight:
         message.insert (0, 0x6)
         pair_char.write (message)
 
+        time.sleep (1)
         reply = bytearray (pair_char.read ())
+
+        self.btdevice.setDelegate (Delegate (self))
+
         if reply[0] == 0x7 :
             self.mesh_name = new_mesh_name.encode ()
             self.mesh_password = new_mesh_password.encode ()
