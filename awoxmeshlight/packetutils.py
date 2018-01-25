@@ -126,3 +126,12 @@ def make_session_key (mesh_name, mesh_password, session_random, response_random)
     key = encrypt (name_pass, random)
     return key
 
+def crc16 (array):
+    poly_array = [0x0, 0xa001]
+    crc = 0xffff
+    for val in bytearray (array):
+        for i in range (0, 8):
+            ind = (crc ^ val) & 0x1
+            crc = (crc >> 1) ^ poly_array [ind]
+            val = val >> 1
+    return crc

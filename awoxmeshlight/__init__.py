@@ -313,3 +313,38 @@ class AwoxMeshLight:
         """
         char = self.btdevice.getCharacteristics (uuid=btle.AssignedNumbers.modelNumberString)[0]
         return char.read ()
+
+    def sendFirmware (self, firmware_path):
+        """
+        Updates the light bulb's firmware. The light will blink green after receiving the new
+        firmware.
+
+        Args:
+            firmware_path: The path of the firmware file.
+        """
+        assert (self.session_key)
+
+        with open (firmware_path, 'rb') as firmware_file :
+            firmware_data = firmware_file.read()
+
+        if not firmware_data :
+            return
+
+        ota_char = self.btdevice.getCharacteristics (uuid=OTA_CHAR_UUID)[0]
+        count = 0
+        for i in range (0, len (firmware_data), 0x10):
+            data = struct.pack ('<H', count) + firmware_data [i:i+0x10].ljust (0x10, b'\xff')
+            crc = pckt.crc16 (data)
+            packet = data + struct.pack ('<H', crc)
+            logger.debug ("Writing packet %i of %i : %s", count + 1, len(firmware_data)/0x10 + 1, repr(packet))
+            ota_char.write (packet)
+            # FIXME : When calling write with withResponse=True bluepy hangs after a few packets.
+            #         Without any delay the light blinks once without accepting the firmware.
+            #         The choosen value is arbitrary.
+            time.sleep (0.01)
+            count += 1
+        data = struct.pack ('<H', count)
+        crc = pckt.crc16 (data)
+        packet = data + struct.pack ('<H', crc)
+        logger.debug ("Writing last packet : %s", repr(packet))
+        ota_char.write (packet)
