@@ -39,7 +39,7 @@ mylight.disconnect()
 *Contributed by [Pixtxa](https://github.com/Pixtxa).*
 
 Reset the light (hold PowerOn + Fav. 1) and the remote (hold PowerOn +
-ColorCyicle) and connect the remote to the light again (hold PowerOn). Now hold
+ColorCycle) and connect the remote to the light again (hold PowerOn). Now hold
 PowerOn and the blue button for a few seconds, so the remote switches to
 Bluetooth-mode. Use BT-app (nRF-Connect or so) to get the mac and name (both
 will have the same name, its "R-" followed by the last 6 digits of the remotes
