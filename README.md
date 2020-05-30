@@ -11,7 +11,7 @@ Only tested with the ESMLm\_c9 model, firmware version 1.2.4
 Requires :
 - A recent version of Python 2 or 3 (tested with 3.6 and 2.7)
 - bluepy
-- pycrypto
+- pycryptodome
 
 ## Installation
 
