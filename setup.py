@@ -20,5 +20,5 @@ setup(name='awoxmeshlight',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 2.7'
         ],
-        install_requires=['bluepy', 'pycrypto']
+        install_requires=['bluepy', 'pycryptodome']
         )
