@@ -136,6 +136,25 @@ class AwoxMeshLight:
                 logger.info ("Unexpected pair value : %s", repr (reply))
             self.disconnect ()
             return False
+        
+    def connectWithRetry(self, num_tries = 1, mesh_name = None, mesh_password = None):
+        """
+        Args:
+           num_tries: The number of attempts to connect.
+           mesh_name: The mesh name as a string.
+           mesh_password: The mesh password as a string.
+        """
+        connected = False
+        attempts = 0
+        while (not connected and attempts < num_tries ):
+            try:
+                connected = self.connect(mesh_name, mesh_password)
+            except btle.BTLEDisconnectError:
+                logger.info("connection_error: retrying for %s time", attempts)
+            finally:
+                attempts += 1
+
+        return connected
 
     def setMesh (self, new_mesh_name, new_mesh_password, new_mesh_long_term_key):
         """
