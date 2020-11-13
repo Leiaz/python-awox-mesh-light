@@ -80,7 +80,7 @@ class Delegate(btle.DefaultDelegate):
             logger.info ("Receiced notification from characteristic %s", char.uuid.getCommonName ())
             message = pckt.decrypt_packet (self.light.session_key, self.light.mac, data)
             logger.info ("Received message : %s", repr (message))
-            
+            self.light.message = message
 
 class AwoxMeshLight:
     def __init__ (self, mac, mesh_name = "unpaired", mesh_password = "1234"):
@@ -103,6 +103,7 @@ class AwoxMeshLight:
         self.red = None
         self.green = None
         self.blue = None
+        self.message = None
 
     def connect(self, mesh_name = None, mesh_password = None):
         """
