@@ -80,7 +80,8 @@ class Delegate(btle.DefaultDelegate):
             logger.info ("Receiced notification from characteristic %s", char.uuid.getCommonName ())
             message = pckt.decrypt_packet (self.light.session_key, self.light.mac, data)
             logger.info ("Received message : %s", repr (message))
-            
+            self.light.parseStatusResult(message)
+
 
 class AwoxMeshLight:
     def __init__ (self, mac, mesh_name = "unpaired", mesh_password = "1234"):
@@ -94,15 +95,19 @@ class AwoxMeshLight:
         self.mesh_id = 0
         self.btdevice = btle.Peripheral ()
         self.session_key = None
+        self.command_char = None
         self.mesh_name = mesh_name.encode ()
         self.mesh_password = mesh_password.encode ()
-        
+
         # Light status
         self.white_brightness = None
         self.white_temp = None
+        self.color_brightness = None
         self.red = None
         self.green = None
         self.blue = None
+        self.mode = None
+        self.status = None
 
     def connect(self, mesh_name = None, mesh_password = None):
         """
@@ -113,13 +118,16 @@ class AwoxMeshLight:
         if mesh_name : self.mesh_name = mesh_name.encode ()
         if mesh_password : self.mesh_password = mesh_password.encode ()
 
+        assert len(self.mesh_name) <= 16, "mesh_name can hold max 16 bytes"
+        assert len(self.mesh_password) <= 16, "mesh_password can hold max 16 bytes"
+
         self.btdevice.connect (self.mac)
         self.btdevice.setDelegate (Delegate (self))
         pair_char = self.btdevice.getCharacteristics (uuid = PAIR_CHAR_UUID)[0]
         self.session_random = urandom(8)
         message = pckt.make_pair_packet (self.mesh_name, self.mesh_password, self.session_random)
         pair_char.write (message)
-        
+
         status_char = self.btdevice.getCharacteristics (uuid = STATUS_CHAR_UUID)[0]
         status_char.write (b'\x01')
 
@@ -136,7 +144,7 @@ class AwoxMeshLight:
                 logger.info ("Unexpected pair value : %s", repr (reply))
             self.disconnect ()
             return False
-        
+
     def connectWithRetry(self, num_tries = 1, mesh_name = None, mesh_password = None):
         """
         Args:
@@ -168,8 +176,11 @@ class AwoxMeshLight:
         Returns :
             True on success.
         """
-        assert (self.session_key)
-        
+        assert (self.session_key), "Not connected"
+        assert len(new_mesh_name.encode()) <= 16, "new_mesh_name can hold max 16 bytes"
+        assert len(new_mesh_password.encode()) <= 16, "new_mesh_password can hold max 16 bytes"
+        assert len(new_mesh_long_term_key.encode()) <= 16, "new_mesh_long_term_key can hold max 16 bytes"
+
         pair_char = self.btdevice.getCharacteristics (uuid = PAIR_CHAR_UUID)[0]
 
         # FIXME : Removing the delegate as a workaround to a bluepy.btle.BTLEException
@@ -226,9 +237,18 @@ class AwoxMeshLight:
         assert (self.session_key)
         if dest == None: dest = self.mesh_id
         packet = pckt.make_command_packet (self.session_key, self.mac, dest, command, data)
-        command_char = self.btdevice.getCharacteristics (uuid=COMMAND_CHAR_UUID)[0]
-        logger.info ("Writing command %i data %s", command, repr (data))
-        command_char.write (packet)
+
+        if not self.command_char:
+            self.command_char = self.btdevice.getCharacteristics (uuid=COMMAND_CHAR_UUID)[0]
+
+        try:
+            logger.info ("[%s] Writing command %i data %s", self.mac, command, repr (data))
+            self.command_char.write(packet)
+        except:
+            logger.info('[%s] (Re)load characteristics', self.mac)
+            self.command_char = self.btdevice.getCharacteristics(uuid=COMMAND_CHAR_UUID)[0]
+            logger.info ("[%s] Writing command %i data %s", self.mac, command, repr (data))
+            self.command_char.write(packet)
 
     def resetMesh (self):
         """
@@ -240,6 +260,30 @@ class AwoxMeshLight:
         status_char = self.btdevice.getCharacteristics (uuid = STATUS_CHAR_UUID)[0]
         packet = status_char.read ()
         return pckt.decrypt_packet (self.session_key, self.mac, packet)
+
+    def parseStatusResult(self, message):
+        message = "".join("%02x" % b for b in message)
+
+        meshid = int(message[6:8], 16)
+        mode = int(message[24:26], 16)
+
+        if mode < 40 and meshid == 0:  # filter some messages that return something else
+            # mode 1 = white
+            # mode 5 = white
+            # mode 3 = color
+            # mode 7 = transition
+            self.mode = mode
+            self.status = mode % 2
+
+            self.white_temp = int(message[28:30], 16)
+            self.white_brightness = int(message[26:28], 16)
+            self.color_brightness = int(message[30:32], 16)
+
+            self.red = int(message[32:34], 16)
+            self.green = int(message[34:36], 16)
+            self.blue = int(message[36:38], 16)
+        else:
+            logger.debug("unknown response - %s", message)
 
     def setColor (self, red, green, blue):
         """
@@ -282,6 +326,22 @@ class AwoxMeshLight:
         """
         data = struct.pack('B', num)
         self.writeCommand (C_PRESET, data)
+
+    def setWhiteBrightness(self, brightness):
+        """
+        Args :
+            brightness: between 1 and 0x7f
+        """
+        data = struct.pack('B', brightness)
+        self.writeCommand(C_WHITE_BRIGHTNESS, data)
+
+    def setWhiteTemperature(self, brightness):
+        """
+        Args :
+            temp: between 0 and 0x7f
+        """
+        data = struct.pack('B', brightness)
+        self.writeCommand(C_WHITE_TEMPERATURE, data)
 
     def setWhite (self, temp, brightness):
         """
