@@ -262,10 +262,8 @@ class AwoxMeshLight:
         return pckt.decrypt_packet (self.session_key, self.mac, packet)
 
     def parseStatusResult(self, message):
-        message = "".join("%02x" % b for b in message)
-
-        meshid = int(message[6:8], 16)
-        mode = int(message[24:26], 16)
+        meshid = struct.unpack('B', message[3:4])[0]
+        mode = struct.unpack('B', message[12:13])[0]
 
         if mode < 40 and meshid == 0:  # filter some messages that return something else
             # mode 1 = white
@@ -275,15 +273,8 @@ class AwoxMeshLight:
             self.mode = mode
             self.status = mode % 2
 
-            self.white_temp = int(message[28:30], 16)
-            self.white_brightness = int(message[26:28], 16)
-            self.color_brightness = int(message[30:32], 16)
-
-            self.red = int(message[32:34], 16)
-            self.green = int(message[34:36], 16)
-            self.blue = int(message[36:38], 16)
-        else:
-            logger.debug("unknown response - %s", message)
+            self.white_brightness, self.white_temp = struct.unpack('BB', message[13:15])
+            self.color_brightness, self.red, self.green, self.blue = struct.unpack('BBBB', message[15:19])
 
     def setColor (self, red, green, blue):
         """
