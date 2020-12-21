@@ -107,7 +107,7 @@ class AwoxMeshLight:
 
         # Light status
         self.white_brightness = None
-        self.white_temp = None
+        self.white_temperature = None
         self.color_brightness = None
         self.red = None
         self.green = None
@@ -301,31 +301,33 @@ class AwoxMeshLight:
             color_brightness
         )
 
+        status = {
+            'mesh_id': mesh_id,
+            'state': (mode & 1) == 1,
+            'color_mode': ((mode >> 1) & 1) == 1,
+            'transition_mode': ((mode >> 2) & 1) == 1,
+            'red': red,
+            'green': green,
+            'blue': blue,
+            'white_temperature': white_temperature,
+            'white_brightness': white_brightness,
+            'color_brightness': color_brightness,
+        }
+
         if mesh_id == self.mesh_id:
             logger.info('Update light status - mesh_id %d', mesh_id)
-            self.state = (mode & 1) == 1
-            self.color_mode = ((mode >> 1) & 1) == 1
-            self.transition_mode = ((mode >> 2) & 1) == 1
-            self.white_brightness = white_brightness
-            self.white_temp = white_temperature
-            self.color_brightness = color_brightness
-            self.red = red
-            self.green = green
-            self.blue = blue
+            self.state = status['state']
+            self.color_mode = status['color_mode']
+            self.transition_mode = status['transition_mode']
+            self.white_brightness = status['white_brightness']
+            self.white_temperature = status['white_temperature']
+            self.color_brightness = status['color_brightness']
+            self.red = status['red']
+            self.green = status['green']
+            self.blue = status['blue']
 
         if self.status_callback:
-            self.status_callback({
-                'mesh_id': mesh_id,
-                'state': (mode & 1) == 1,
-                'color_mode': ((mode >> 1) & 1) == 1,
-                'transition_mode': ((mode >> 2) & 1) == 1,
-                'red': red,
-                'green': green,
-                'blue': blue,
-                'white_temperature': white_temperature,
-                'white_brightness': white_brightness,
-                'color_brightness': color_brightness,
-            })
+            self.status_callback(status)
 
     def setColor(self, red, green, blue, dest=None):
         """
