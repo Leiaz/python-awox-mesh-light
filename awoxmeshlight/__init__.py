@@ -316,7 +316,7 @@ class AwoxMeshLight:
         if self.status_callback:
             self.status_callback({
                 'mesh_id': mesh_id,
-                'status': (mode & 1) == 1,
+                'state': (mode & 1) == 1,
                 'color_mode': ((mode >> 1) & 1) == 1,
                 'transition_mode': ((mode >> 2) & 1) == 1,
                 'red': red,
