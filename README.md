@@ -113,9 +113,20 @@ mylight.setColor (0x50, 0x76, 0x00 )
 mylight.disconnect()
 ```
 
-## Procedure to manually reset the light bulb (from Awox FAQ video):
+## Procedure to reset the light bulb:
 
-Turn on and off in the following sequence :
+### via python
+
+```python
+import awoxmeshlight
+
+mylight = awoxmeshlight.AwoxMeshLight ("A4:C1:38:97:11:33", "mesh_name", "mesh_password")
+mylight.connect ()
+mylight.resetMesh()
+```
+### manually
+
+Turn on and off (with cutting/restore power supply) in the following sequence(from Awox FAQ video):
 
 - 3 times :
   - On during 1 sec
